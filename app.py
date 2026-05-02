@@ -1,188 +1,274 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Register | MediCore HMS</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet"/>
-  <style>
-    :root { --blue: #1a6eb5; --blue-light: #e8f1fb; }
-    * { box-sizing: border-box; }
-    body {
-      font-family: 'Nunito', sans-serif;
-      
-      background: #f0f4fa;
-      display: flex; align-items: center; justify-content: center;
-     
-    }
-    .register-card {
-      background: #fff;
-      border-radius: 20px;
-      box-shadow: 0 8px 40px rgba(26,110,181,0.12);
-      padding: 40px 44px;
-      width: 100%; max-width: 520px;
-    }
-    .brand-row {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 28px;
-    }
-    .brand-icon {
-      width: 48px; height: 48px;
-      background: linear-gradient(135deg,#1a6eb5,#00b4d8);
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-size: 1.3rem;
-    }
-    .brand-row h5 {
-      font-family: 'Playfair Display', serif;
-      margin: 0; font-size: 1.2rem; color: #1e2a3a;
-    }
-    h2 { font-weight: 800; font-size: 1.7rem; color: #1e2a3a; margin-bottom: 4px; }
-    h2 span { color: var(--blue); }
-    .sub { color: #64748b; font-size: 0.9rem; margin-bottom: 28px; }
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+import sqlite3
+from datetime import datetime, date
+from functools import wraps
+import hashlib
 
-    .form-label { font-size: 0.84rem; font-weight: 700; color: #374151; margin-bottom: 5px; }
-    .form-control {
-      border-radius: 10px; border: 1.5px solid #e2e8f0;
-      padding: 10px 14px; font-size: 0.92rem;
-      font-family: 'Nunito', sans-serif;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .form-control:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(26,110,181,0.12);
-    }
-    .input-group-text {
-      border-radius: 10px 0 0 10px;
-      border: 1.5px solid #e2e8f0; border-right: none;
-      background: #f8fafc; color: #94a3b8;
-    }
-    .input-group .form-control { border-radius: 0 10px 10px 0; }
+app = Flask(__name__)
+app.secret_key = 'medicore_super_secret_key_2024_!@#'
+DATABASE = 'hospital.db'
 
-    .btn-register {
-      background: linear-gradient(135deg, var(--blue), #00b4d8);
-      border: none; border-radius: 10px;
-      color: #fff; font-weight: 700; font-size: 1rem;
-      padding: 12px; width: 100%;
-      transition: all 0.2s;
-    }
-    .btn-register:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(26,110,181,0.32);
-      color: #fff;
-    }
-    .pwd-strength { height: 4px; border-radius: 4px; margin-top: 6px; transition: all 0.3s; background: #e2e8f0; }
-    .pwd-strength.weak   { background: #ef4444; width: 33%; }
-    .pwd-strength.medium { background: #f97316; width: 66%; }
-    .pwd-strength.strong { background: #22c55e; width: 100%; }
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-    .alert { border-radius: 10px; border: none; font-weight: 600; font-size: 0.88rem; }
-    .alert-danger  { background: #fee2e2; color: #b91c1c; }
-    .alert-success { background: #dcfce7; color: #15803d; }
-    .login-link { text-align: center; margin-top: 20px; font-size: 0.9rem; color: #64748b; }
-    .login-link a { color: var(--blue); font-weight: 700; text-decoration: none; }
-    .login-link a:hover { text-decoration: underline; }
-    @media (max-width: 576px) { .register-card { padding: 28px 20px; } }
-  </style>
-</head>
-<body>
-<div class="register-card">
-  <div class="brand-row">
-    <div class="brand-icon"><i class="fa-solid fa-heart-pulse"></i></div>
-    <h5>MediCore HMS</h5>
-  </div>
+def hash_password(password):
+    return hashlib.sha256(('medicore_salt_2024' + password).encode()).hexdigest()
 
-  <h2>Create <span>Account</span></h2>
-  <p class="sub">Register to access the Hospital Management System</p>
+def init_db():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS Users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        full_name TEXT,
+        role TEXT DEFAULT 'staff',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS Patients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL, age INTEGER, gender TEXT, phone TEXT,
+        email TEXT, address TEXT, blood_group TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS Doctors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL, specialization TEXT, phone TEXT, email TEXT,
+        consultation_fee REAL DEFAULT 500.0, available_days TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS Appointments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id INTEGER, doctor_id INTEGER,
+        appointment_datetime TEXT, status TEXT DEFAULT 'Scheduled', notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(patient_id) REFERENCES Patients(id),
+        FOREIGN KEY(doctor_id) REFERENCES Doctors(id)
+    )''')
+    c.execute("SELECT COUNT(*) FROM Users")
+    if c.fetchone()[0] == 0:
+        c.execute('INSERT INTO Users (username,email,password,full_name,role) VALUES (?,?,?,?,?)',
+                  ('admin','admin@medicore.com',hash_password('admin123'),'Administrator','admin'))
+    c.execute("SELECT COUNT(*) FROM Doctors")
+    if c.fetchone()[0] == 0:
+        c.executemany('INSERT INTO Doctors (name,specialization,phone,email,consultation_fee,available_days) VALUES (?,?,?,?,?,?)', [
+            ('Dr. Priya Sharma','Cardiology','9876543210','priya@hospital.com',1200.0,'Mon,Tue,Wed,Thu,Fri'),
+            ('Dr. Arjun Mehta','Neurology','9876543211','arjun@hospital.com',1500.0,'Mon,Wed,Fri'),
+            ('Dr. Sneha Patel','Orthopedics','9876543212','sneha@hospital.com',800.0,'Tue,Thu,Sat'),
+            ('Dr. Rohan Verma','Pediatrics','9876543213','rohan@hospital.com',600.0,'Mon,Tue,Wed,Thu,Fri,Sat'),
+        ])
+    conn.commit()
+    conn.close()
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for cat, msg in messages %}
-        <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3">
-          <i class="fa-solid {% if cat=='success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %} me-2"></i>
-          {{ msg }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
 
-  <form method="POST" action="{{ url_for('register') }}">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Full Name *</label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="fa-solid fa-id-card"></i></span>
-          <input type="text" name="full_name" class="form-control" placeholder="Dr. / Mr. / Ms." required>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Username *</label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-          <input type="text" name="username" class="form-control" placeholder="Unique username" required>
-        </div>
-      </div>
-      <div class="col-12">
-        <label class="form-label">Email Address *</label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
-          <input type="email" name="email" class="form-control" placeholder="you@hospital.com" required>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Password *</label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-          <input type="password" name="password" id="pwd" class="form-control" placeholder="Min 6 characters" required oninput="checkStrength(this.value)">
-        </div>
-        <div class="pwd-strength" id="strengthBar"></div>
-        <div id="strengthText" style="font-size:0.75rem;color:#94a3b8;margin-top:3px;"></div>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Confirm Password *</label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-          <input type="password" name="confirm_password" id="cpwd" class="form-control" placeholder="Repeat password" required oninput="checkMatch()">
-        </div>
-        <div id="matchText" style="font-size:0.75rem;margin-top:3px;"></div>
-      </div>
-    </div>
+# AUTH
+@app.route('/login', methods=['GET','POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        password = request.form['password']
+        conn = get_db()
+        user = conn.execute(
+            'SELECT * FROM Users WHERE (username=? OR email=?) AND password=?',
+            (username, username, hash_password(password))
+        ).fetchone()
+        conn.close()
+        if user:
+            session['user_id']   = user['id']
+            session['username']  = user['username']
+            session['full_name'] = user['full_name']
+            session['role']      = user['role']
+            flash(f"Welcome back, {user['full_name'] or user['username']}!", 'success')
+            return redirect(url_for('dashboard'))
+        flash('Invalid username or password.', 'danger')
+    return render_template('login.html')
 
-    <div class="mt-4">
-      <button type="submit" class="btn btn-register">
-        <i class="fa-solid fa-user-plus me-2"></i>Create Account
-      </button>
-    </div>
-  </form>
+@app.route('/register', methods=['GET','POST'])
+def register():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        username  = request.form['username'].strip()
+        email     = request.form['email'].strip()
+        full_name = request.form['full_name'].strip()
+        password  = request.form['password']
+        confirm   = request.form['confirm_password']
+        if password != confirm:
+            flash('Passwords do not match!', 'danger')
+            return render_template('register.html')
+        if len(password) < 6:
+            flash('Password must be at least 6 characters.', 'danger')
+            return render_template('register.html')
+        conn = get_db()
+        existing = conn.execute('SELECT id FROM Users WHERE username=? OR email=?',(username,email)).fetchone()
+        if existing:
+            flash('Username or email already taken.', 'danger')
+            conn.close()
+            return render_template('register.html')
+        conn.execute('INSERT INTO Users (username,email,password,full_name,role) VALUES (?,?,?,?,?)',
+                     (username,email,hash_password(password),full_name,'staff'))
+        conn.commit()
+        conn.close()
+        flash('Account created! Please log in.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
-  <div class="login-link">
-    Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
-  </div>
-</div>
+@app.route('/logout')
+def logout():
+    name = session.get('full_name','User')
+    session.clear()
+    flash(f'Goodbye, {name}! You have been logged out.', 'info')
+    return redirect(url_for('login'))
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  function checkStrength(val){
-    const bar=document.getElementById('strengthBar');
-    const txt=document.getElementById('strengthText');
-    if(!val){bar.className='pwd-strength';txt.textContent='';return;}
-    const strong = val.length>=8 && /[A-Z]/.test(val) && /[0-9]/.test(val);
-    const medium = val.length>=6;
-    if(strong){bar.className='pwd-strength strong';txt.textContent='Strong ✓';txt.style.color='#16a34a';}
-    else if(medium){bar.className='pwd-strength medium';txt.textContent='Medium';txt.style.color='#ea580c';}
-    else{bar.className='pwd-strength weak';txt.textContent='Too weak';txt.style.color='#dc2626';}
-  }
-  function checkMatch(){
-    const p=document.getElementById('pwd').value;
-    const c=document.getElementById('cpwd').value;
-    const t=document.getElementById('matchText');
-    if(!c){t.textContent='';return;}
-    if(p===c){t.textContent='Passwords match ✓';t.style.color='#16a34a';}
-    else{t.textContent='Passwords do not match';t.style.color='#dc2626';}
-  }
-</script>
-</body>
-</html>
+# DASHBOARD
+@app.route('/')
+@login_required
+def dashboard():
+    conn = get_db()
+    total_patients      = conn.execute('SELECT COUNT(*) FROM Patients').fetchone()[0]
+    total_doctors       = conn.execute('SELECT COUNT(*) FROM Doctors').fetchone()[0]
+    today               = date.today().strftime('%Y-%m-%d')
+    todays_appointments = conn.execute("SELECT COUNT(*) FROM Appointments WHERE appointment_datetime LIKE ?",(today+'%',)).fetchone()[0]
+    total_appointments  = conn.execute('SELECT COUNT(*) FROM Appointments').fetchone()[0]
+    recent_appointments = conn.execute('''SELECT a.id,p.name as patient_name,d.name as doctor_name,a.appointment_datetime,a.status
+        FROM Appointments a JOIN Patients p ON a.patient_id=p.id JOIN Doctors d ON a.doctor_id=d.id
+        ORDER BY a.created_at DESC LIMIT 5''').fetchall()
+    conn.close()
+    return render_template('dashboard.html',total_patients=total_patients,total_doctors=total_doctors,
+        todays_appointments=todays_appointments,total_appointments=total_appointments,recent_appointments=recent_appointments)
+
+# PATIENTS
+@app.route('/patients')
+@login_required
+def patients():
+    search=request.args.get('search',''); gender_filter=request.args.get('gender','')
+    conn=get_db(); query='SELECT * FROM Patients WHERE 1=1'; params=[]
+    if search:
+        query+=' AND (name LIKE ? OR phone LIKE ? OR email LIKE ?)'; params.extend([f'%{search}%']*3)
+    if gender_filter:
+        query+=' AND gender=?'; params.append(gender_filter)
+    patients=conn.execute(query+' ORDER BY created_at DESC',params).fetchall(); conn.close()
+    return render_template('patients.html',patients=patients,search=search,gender_filter=gender_filter)
+
+@app.route('/patients/add',methods=['GET','POST'])
+@login_required
+def add_patient():
+    if request.method=='POST':
+        conn=get_db()
+        conn.execute('INSERT INTO Patients (name,age,gender,phone,email,address,blood_group) VALUES (?,?,?,?,?,?,?)',
+            (request.form['name'],request.form['age'],request.form['gender'],request.form['phone'],
+             request.form['email'],request.form['address'],request.form['blood_group']))
+        conn.commit(); conn.close()
+        flash('Patient registered successfully!','success')
+        return redirect(url_for('patients'))
+    return render_template('add_patient.html')
+
+@app.route('/patients/delete/<int:pid>')
+@login_required
+def delete_patient(pid):
+    conn=get_db(); conn.execute('DELETE FROM Patients WHERE id=?',(pid,)); conn.commit(); conn.close()
+    flash('Patient record deleted.','warning'); return redirect(url_for('patients'))
+
+# DOCTORS
+@app.route('/doctors')
+@login_required
+def doctors():
+    search=request.args.get('search',''); spec_filter=request.args.get('specialization','')
+    conn=get_db(); query='SELECT * FROM Doctors WHERE 1=1'; params=[]
+    if search:
+        query+=' AND (name LIKE ? OR phone LIKE ?)'; params.extend([f'%{search}%']*2)
+    if spec_filter:
+        query+=' AND specialization=?'; params.append(spec_filter)
+    doctors=conn.execute(query+' ORDER BY name',params).fetchall()
+    specializations=conn.execute('SELECT DISTINCT specialization FROM Doctors ORDER BY specialization').fetchall()
+    conn.close()
+    return render_template('doctors.html',doctors=doctors,search=search,spec_filter=spec_filter,specializations=specializations)
+
+@app.route('/doctors/add',methods=['GET','POST'])
+@login_required
+def add_doctor():
+    if request.method=='POST':
+        conn=get_db()
+        conn.execute('INSERT INTO Doctors (name,specialization,phone,email,consultation_fee,available_days) VALUES (?,?,?,?,?,?)',
+            (request.form['name'],request.form['specialization'],request.form['phone'],request.form['email'],
+             request.form['consultation_fee'],','.join(request.form.getlist('available_days'))))
+        conn.commit(); conn.close()
+        flash('Doctor added successfully!','success'); return redirect(url_for('doctors'))
+    return render_template('add_doctor.html')
+
+@app.route('/doctors/delete/<int:did>')
+@login_required
+def delete_doctor(did):
+    conn=get_db(); conn.execute('DELETE FROM Doctors WHERE id=?',(did,)); conn.commit(); conn.close()
+    flash('Doctor record deleted.','warning'); return redirect(url_for('doctors'))
+
+# APPOINTMENTS
+@app.route('/appointments')
+@login_required
+def appointments():
+    status_filter=request.args.get('status',''); conn=get_db()
+    query='''SELECT a.id,p.name as patient_name,d.name as doctor_name,d.specialization,
+                    a.appointment_datetime,a.status,a.notes,d.consultation_fee
+             FROM Appointments a JOIN Patients p ON a.patient_id=p.id JOIN Doctors d ON a.doctor_id=d.id WHERE 1=1'''
+    params=[]
+    if status_filter:
+        query+=' AND a.status=?'; params.append(status_filter)
+    appointments=conn.execute(query+' ORDER BY a.appointment_datetime DESC',params).fetchall(); conn.close()
+    return render_template('appointments.html',appointments=appointments,status_filter=status_filter)
+
+@app.route('/appointments/add',methods=['GET','POST'])
+@login_required
+def add_appointment():
+    conn=get_db()
+    if request.method=='POST':
+        patient_id=request.form['patient_id']; doctor_id=request.form['doctor_id']
+        appt_dt=request.form['appointment_datetime']; notes=request.form['notes']
+        existing=conn.execute('SELECT id FROM Appointments WHERE doctor_id=? AND appointment_datetime=? AND status!="Cancelled"',(doctor_id,appt_dt)).fetchone()
+        if existing:
+            flash('Doctor is already booked at this time! Please choose a different slot.','danger')
+        else:
+            conn.execute('INSERT INTO Appointments (patient_id,doctor_id,appointment_datetime,notes) VALUES (?,?,?,?)',(patient_id,doctor_id,appt_dt,notes))
+            conn.commit(); flash('Appointment scheduled successfully!','success'); conn.close()
+            return redirect(url_for('appointments'))
+    patients=conn.execute('SELECT id,name FROM Patients ORDER BY name').fetchall()
+    doctors=conn.execute('SELECT id,name,specialization FROM Doctors ORDER BY name').fetchall()
+    conn.close()
+    return render_template('add_appointment.html',patients=patients,doctors=doctors)
+
+@app.route('/appointments/update_status/<int:aid>/<status>')
+@login_required
+def update_status(aid,status):
+    conn=get_db(); conn.execute('UPDATE Appointments SET status=? WHERE id=?',(status,aid)); conn.commit(); conn.close()
+    flash(f'Appointment status updated to {status}.','info'); return redirect(url_for('appointments'))
+
+# BILLING
+@app.route('/billing/<int:aid>')
+@login_required
+def get_bill(aid):
+    conn=get_db()
+    data=conn.execute('''SELECT a.id,p.name as patient_name,d.name as doctor_name,
+        d.specialization,a.appointment_datetime,d.consultation_fee
+        FROM Appointments a JOIN Patients p ON a.patient_id=p.id JOIN Doctors d ON a.doctor_id=d.id WHERE a.id=?''',(aid,)).fetchone()
+    conn.close()
+    if not data: return jsonify({'error':'Not found'}),404
+    fee=data['consultation_fee']; tax=round(fee*0.18,2); total=round(fee+tax,2)
+    return jsonify({'appointment_id':data['id'],'patient_name':data['patient_name'],
+        'doctor_name':data['doctor_name'],'specialization':data['specialization'],
+        'appointment_datetime':data['appointment_datetime'],'consultation_fee':fee,'tax_18':tax,'total':total})
+
+if __name__=='__main__':
+    init_db()
+    app.run(debug=True)
