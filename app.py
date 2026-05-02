@@ -15,7 +15,7 @@
       
       background: #f0f4fa;
       display: flex; align-items: center; justify-content: center;
-      padding: 40px 16px;
+     
     }
     .register-card {
       background: #fff;
