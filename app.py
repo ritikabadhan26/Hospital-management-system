@@ -12,7 +12,7 @@
     * { box-sizing: border-box; }
     body {
       font-family: 'Nunito', sans-serif;
-      min-height: 100vh; margin: 0;
+      
       background: #f0f4fa;
       display: flex; align-items: center; justify-content: center;
       padding: 40px 16px;
