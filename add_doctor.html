@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Add Patient | MediCore HMS{% endblock %}
+{% block topbar_title %}Register <span>Patient</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>Register <span>New Patient</span></h2>
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Home</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('patients') }}" class="text-decoration-none">Patients</a></li>
+      <li class="breadcrumb-item active">Register</li>
+    </ol></nav>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-user-plus me-2 text-primary"></i>Patient Information</div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('add_patient') }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Full Name *</label>
+              <input type="text" name="name" class="form-control" placeholder="e.g. Rahul Kumar" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Age *</label>
+              <input type="number" name="age" class="form-control" min="0" max="120" placeholder="28" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Gender *</label>
+              <select name="gender" class="form-select" required>
+                <option value="">Select…</option>
+                <option>Male</option><option>Female</option><option>Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone Number</label>
+              <input type="tel" name="phone" class="form-control" placeholder="9876543210">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email Address</label>
+              <input type="email" name="email" class="form-control" placeholder="patient@email.com">
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Address</label>
+              <input type="text" name="address" class="form-control" placeholder="Street, City, State">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Blood Group</label>
+              <select name="blood_group" class="form-select">
+                <option value="">Unknown</option>
+                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+              </select>
+            </div>
+          </div>
+          <hr class="my-4">
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('patients') }}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="fa-solid fa-floppy-disk me-1"></i> Register Patient
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+# 🏥 MediCore Hospital Management System
+
+A professional, responsive Hospital Management System built with Python (Flask) and SQLite.
+
+## Features
+- **Dashboard** – Summary cards: total patients, doctors, today's appointments
+- **Patients** – Register, list with search/filter by name, phone, gender
+- **Doctors** – Add, list with search/filter by name, specialization; card-grid view
+- **Appointments** – Schedule with double-booking prevention, status updates (Scheduled / Completed / Cancelled)
+- **Billing Modal** – Click "Generate Bill" on any appointment to see consultation fee + 18% GST + total
+
+## Tech Stack
+| Layer       | Technology                        |
+|-------------|-----------------------------------|
+| Backend     | Python 3.10+, Flask               |
+| Database    | SQLite (auto-created on first run)|
+| Frontend    | Bootstrap 5, Font Awesome 6       |
+| Fonts       | Google Fonts – Nunito + Playfair  |
+
+## Setup & Run
+
+```bash
+# 1. Create & activate virtual environment
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Run the app
+python app.py
+```
+
+Open your browser at **http://127.0.0.1:5000**
+
+## Project Structure
+```
+hospital_management/
+├── app.py                  # Flask backend (routes, DB init, billing API)
+├── hospital.db             # SQLite database (auto-created)
+├── requirements.txt
+└── templates/
+    ├── base.html           # Sidebar + topbar layout (Jinja2 base)
+    ├── dashboard.html      # Summary cards + recent appointments
+    ├── patients.html       # Patient list with search/filter
+    ├── add_patient.html    # Register patient form
+    ├── doctors.html        # Doctor card-grid with search/filter
+    ├── add_doctor.html     # Add doctor form
+    ├── appointments.html   # Appointment list + billing button
+    └── add_appointment.html# Schedule appointment form
+```
+
+## Default Data
+Four sample doctors are seeded automatically:
+- Dr. Priya Sharma — Cardiology (₹1200)
+- Dr. Arjun Mehta — Neurology (₹1500)
+- Dr. Sneha Patel — Orthopedics (₹800)
+- Dr. Rohan Verma — Pediatrics (₹600)
