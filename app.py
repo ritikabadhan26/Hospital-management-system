@@ -75,7 +75,7 @@ def login_required(f):
 # AUTH
 @app.route('/login', methods=['GET','POST'])
 def login():
-    return render_templates("login.html")
+    return render_template("login.html")
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
