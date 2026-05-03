@@ -138,6 +138,7 @@ def logout():
 @app.route('/')
 @login_required
 def dashboard():
+    return redirect(url_for('dashboard'))
     conn = get_db()
     total_patients      = conn.execute('SELECT COUNT(*) FROM Patients').fetchone()[0]
     total_doctors       = conn.execute('SELECT COUNT(*) FROM Doctors').fetchone()[0]
