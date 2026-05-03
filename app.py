@@ -99,6 +99,7 @@ def login():
 
 @app.route('/register', methods=['GET','POST'])
 def register():
+     return render_template('templates/register.html')
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
@@ -138,7 +139,7 @@ def logout():
 @app.route('/')
 @login_required
 def dashboard():
-    return redirect(url_for('dashboard'))
+    return render_template('templates/dashboard.html')
     conn = get_db()
     total_patients      = conn.execute('SELECT COUNT(*) FROM Patients').fetchone()[0]
     total_doctors       = conn.execute('SELECT COUNT(*) FROM Doctors').fetchone()[0]
@@ -156,6 +157,7 @@ def dashboard():
 @app.route('/patients')
 @login_required
 def patients():
+     return render_template('templates/patients.html')
     search=request.args.get('search',''); gender_filter=request.args.get('gender','')
     conn=get_db(); query='SELECT * FROM Patients WHERE 1=1'; params=[]
     if search:
@@ -168,6 +170,7 @@ def patients():
 @app.route('/patients/add',methods=['GET','POST'])
 @login_required
 def add_patient():
+     return render_template('templates/add_patient.html')
     if request.method=='POST':
         conn=get_db()
         conn.execute('INSERT INTO Patients (name,age,gender,phone,email,address,blood_group) VALUES (?,?,?,?,?,?,?)',
